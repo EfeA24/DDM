@@ -16,6 +16,7 @@ namespace Shared.Messaging.DI
             services.Configure<KafkaManageOptions>(configuration.GetSection(KafkaManageOptions.SectionName));
             services.AddSingleton<IKafkaProducer, KafkaProducer>();
             services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
+
             return services;
         }
     }

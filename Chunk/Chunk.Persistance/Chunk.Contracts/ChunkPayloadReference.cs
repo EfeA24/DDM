@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 
 namespace Chunk.Contracts
 {
-    public class ChunkPayloadReference
-    {
-        public sealed record ChunkPayloadReference(string RedisKey, DateTimeOffset? ExpiresAt = null);
+    public sealed record ChunkPayloadReference(string RedisKey, DateTimeOffset? ExpiresAt = null);
 
-    }
 }

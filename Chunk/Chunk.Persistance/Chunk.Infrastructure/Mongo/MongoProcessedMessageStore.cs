@@ -10,18 +10,21 @@ namespace Chunk.Infrastructure.Mongo
 {
     public sealed class MongoProcessedMessageStore : IProcessedMessageStore
     {
-        private readonly IMongoCollection<ProcessedMessage> _col;
-        public MongoProcessedMessageStore(ChunkMongo mongo) => _col = mongo.Processed;
+        private readonly IMongoCollection<ProcessedMessage> _collection;
+
+        public MongoProcessedMessageStore(ChunkMongo mongo) => _collection = mongo.Processed;
 
         public async Task<bool> ExistsAsync(string messageId, CancellationToken ct)
         {
-            var c = await _col.CountDocumentsAsync(x => x.Id == messageId, cancellationToken: ct);
-            return c > 0;
+            var count = await _collection.CountDocumentsAsync(x => x.Id == messageId, cancellationToken: ct)
+                                         .ConfigureAwait(false);
+            return count > 0;
         }
 
         public async Task MarkProcessedAsync(string messageId, CancellationToken ct)
         {
-            await _col.InsertOneAsync(new ProcessedMessage { Id = messageId }, cancellationToken: ct);
+            await _collection.InsertOneAsync(new ProcessedMessage { Id = messageId }, cancellationToken: ct)
+                             .ConfigureAwait(false);
         }
     }
 }

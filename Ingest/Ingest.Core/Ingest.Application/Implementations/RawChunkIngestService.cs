@@ -1,5 +1,10 @@
-﻿using Ingest.Application.Interfaces;
+﻿using Chunk.Contracts;
+using Ingest.Application.Interfaces;
 using Ingest.Domain.Entities;
+using Microsoft.Extensions.Logging;
+using Shared.Messaging.KafkaOptions;
+using Shared.Messaging.MessagingOptions;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Ingest.Application.Implementations
 {
-    public sealed class RawChunkIngestService : IRawChunkIngestService
+    public class RawChunkIngestService : IRawChunkIngestService
     {
         private static readonly TimeSpan DefaultPayloadTtl = TimeSpan.FromHours(1);
 

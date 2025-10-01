@@ -1,6 +1,7 @@
 using Chunk.Infrastructure;
 using Chunk.Infrastructure.Mongo;
 using Shared.Infrastructure;
+using Shared.Infrastructure.DI;
 
 var builder = WebApplication.CreateBuilder(args);
 

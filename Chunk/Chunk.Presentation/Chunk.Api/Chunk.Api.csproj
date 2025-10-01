@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Infrastructure\Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Chunk.Persistance\Chunk.Infrastructure\Chunk.Infrastructure.csproj" />
   </ItemGroup>
 

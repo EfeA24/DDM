@@ -1,4 +1,5 @@
-﻿using Ingest.Domain.Entities;
+﻿using Chunk.Contracts;
+using Ingest.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
