@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Messaging;
-using Shared.Messaging.Kafka;
+using Shared.Messaging.KafkaOptions;
 using StackExchange.Redis;
+using Shared.Messaging.DI;
 
 namespace Shared.Infrastructure.DI
 {

@@ -14,7 +14,7 @@ namespace Shared.Messaging.KafkaOptions
         private readonly IProducer<string, string> _producer;
         private readonly ILogger<KafkaProducer> _logger;
 
-        public KafkaProducer(IOptions<KafkaOptions> options, ILogger<KafkaProducer> logger)
+        public KafkaProducer(IOptions<KafkaManageOptions> options, ILogger<KafkaProducer> logger)
         {
             _logger = logger;
             var config = BuildProducerConfig(options.Value);
@@ -44,7 +44,7 @@ namespace Shared.Messaging.KafkaOptions
             return ValueTask.CompletedTask;
         }
 
-        private static ProducerConfig BuildProducerConfig(KafkaOptions options)
+        private static ProducerConfig BuildProducerConfig(KafkaManageOptions options)
         {
             var config = new ProducerConfig
             {
@@ -60,7 +60,7 @@ namespace Shared.Messaging.KafkaOptions
             return config;
         }
 
-        internal static void ApplySecurity(ClientConfig config, KafkaOptions options)
+        internal static void ApplySecurity(ClientConfig config, KafkaManageOptions options)
         {
             if (string.IsNullOrWhiteSpace(options.SaslUsername) || string.IsNullOrWhiteSpace(options.SaslPassword))
             {

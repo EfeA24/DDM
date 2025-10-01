@@ -1,22 +1,24 @@
 ﻿using Chunk.Application.Interfaces;
+using Chunk.Application.Interfaces;
+using Chunk.Domain.Entities;
+using Chunk.Domain.Enums;
 using Chunk.Infrastructure.Mongo;
 using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using Chunk.Application.Interfaces;
-using Chunk.Contracts;
+using MongoDB.Driver;
+using Shared.Messaging;
+using Shared.Messaging.KafkaOptions;
+using Shared.Messaging.KafkaOptions;
+using Shared.Messaging.MessagingOptions;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Shared.Messaging;
-using Shared.Messaging.KafkaOptions;
-using StackExchange.Redis;
-using Shared.Messaging.KafkaOptions;
-using Shared.Messaging.MessagingOptions;
+using System.Threading.Tasks;
 
 namespace Chunk.Infrastructure.ChunkManager
 {
@@ -69,12 +71,10 @@ namespace Chunk.Infrastructure.ChunkManager
                         continue;
                     }
 
-                    // 1) Redis'ten chunk payload'ını oku
                     var bytes = await _redis.StringGetAsync(env.Data.RedisKey);
                     if (bytes.IsNullOrEmpty)
                         throw new InvalidOperationException($"Redis key not found: {env.Data.RedisKey}");
 
-                    // 2) Hash + normalize
                     var payload = (byte[])bytes!;
                     var hash = Convert.ToHexString(SHA256.HashData(payload));
 
@@ -90,11 +90,9 @@ namespace Chunk.Infrastructure.ChunkManager
                         env.Data.SchemaVersion,
                         env.Data.Ts);
 
-                    // 3) Mongo state güncelle
                     await EnsureChunkSetAsync(env.Data, stoppingToken);
                     await UpsertChunkDocAsync(env.Data, hash, stoppingToken);
 
-                    // 4) Publish normalized
                     var outEnv = new Envelope<NormalizedChunk>(
                         env.Id, "Ingest.NormalizedChunk.v1", "Chunk.Orchestrator",
                         env.CorrelationId, env.CausationId, env.TenantId,
@@ -103,7 +101,6 @@ namespace Chunk.Infrastructure.ChunkManager
                     var outJson = MessagingSerializer.Serialize(outEnv);
                     await _producer.ProduceAsync(Topics.IngestNormalized, env.Id, outJson, null, stoppingToken);
 
-                    // 5) İşlendi işaretle + offset commit
                     await _idempotency.MarkProcessedAsync(env.Id, stoppingToken);
                     consumer.Commit(cr);
                 }
@@ -127,4 +124,65 @@ namespace Chunk.Infrastructure.ChunkManager
                 }
             }
         }
+        private async Task EnsureChunkSetAsync(IngestRawChunk chunk, CancellationToken ct)
+        {
+            var filter = Builders<ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
+            var update = Builders<ChunkSet>.Update
+                .SetOnInsert(x => x.Id, chunk.JobId)
+                .SetOnInsert(x => x.TenantId, chunk.TenantId)
+                .SetOnInsert(x => x.Total, chunk.Total)
+                .SetOnInsert(x => x.Received, 0)
+                .SetOnInsert(x => x.Status, ChunkSetStatus.Pending)
+                .SetOnInsert(x => x.CreatedAt, DateTimeOffset.UtcNow);
+
+            await _mongo.ChunkSets.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true }, ct);
+        }
+
+        private async Task UpsertChunkDocAsync(IngestRawChunk chunk, string hash, CancellationToken ct)
+        {
+            var docId = $"{chunk.JobId}:{chunk.Index}";
+            var filter = Builders<ChunkDoc>.Filter.Eq(x => x.Id, docId);
+            var update = Builders<ChunkDoc>.Update
+                .SetOnInsert(x => x.Id, docId)
+                .Set(x => x.JobId, chunk.JobId)
+                .Set(x => x.TenantId, chunk.TenantId)
+                .Set(x => x.Index, chunk.Index)
+                .Set(x => x.Size, chunk.Size)
+                .Set(x => x.ContentHash, hash)
+                .Set(x => x.Ts, chunk.Ts);
+
+            var result = await _mongo.Chunks.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true }, ct);
+            if (result.UpsertedId == null)
+            {
+                return;
+            }
+
+            var setFilter = Builders<ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
+            var setUpdate = Builders<ChunkSet>.Update
+                .Inc(x => x.Received, 1)
+                .Set(x => x.Status, ChunkSetStatus.InProgress);
+
+            var options = new FindOneAndUpdateOptions<ChunkSet>
+            {
+                ReturnDocument = ReturnDocument.After
+            };
+
+            var updatedSet = await _mongo.ChunkSets.FindOneAndUpdateAsync(setFilter, setUpdate, options, ct);
+            if (updatedSet is null)
+            {
+                return;
+            }
+
+            if (updatedSet.Received >= updatedSet.Total)
+            {
+                await _mongo.ChunkSets.UpdateOneAsync(
+                    setFilter,
+                    Builders<ChunkSet>.Update
+                        .Set(x => x.Status, ChunkSetStatus.Completed)
+                        .Set(x => x.CompletedAt, DateTimeOffset.UtcNow),
+                    cancellationToken: ct);
+
+            }
+        }
     }
+}
