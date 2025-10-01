@@ -10,7 +10,6 @@ volumes:
   mssql-data:
 
 services:
-  # --- Messaging Core (Kafka KRaft) ---
   kafka:
     image: bitnami/kafka:3.7
     container_name: kafka
@@ -63,7 +62,6 @@ services:
       - schema-registry
     networks: [app-net]
 
-  # Topic bootstrapper (creates topics with desired configs)
   kafka-setup:
     image: confluentinc/cp-kafka:7.7.1
     container_name: kafka-setup
@@ -101,7 +99,6 @@ services:
       '
     networks: [app-net]
 
-  # --- Caches & DBs ---
   redis:
     image: bitnami/redis:7.2
     container_name: redis
@@ -151,63 +148,61 @@ services:
       - mssql-data:/var/opt/mssql
     networks: [app-net]
 
-  # --- Application Services (sample wiring) ---
   ingest.api:
-    # build:
-    #   context: ./src/Ingest/Ingest.Api
     image: ghcr.io/yourorg/ingest:dev
     container_name: ingest-api
     restart: unless-stopped
     environment:
-      - Kafka__BootstrapServers=kafka:9092
-      - SchemaRegistry__Url=http://schema-registry:8081
-      - Redis__Connection=redis:6379,password=redispass
-      - Out__Topic=ingest.raw
+      Kafka__BootstrapServers: kafka:9092
+      Kafka__ClientId: ingest-api
+      SchemaRegistry__Url: http://schema-registry:8081
+      ConnectionStrings__Redis: redis:6379,password=redispass
+      Ingest__RedisListKey: ingest:queue
+      Ingest__Topic: ingest.raw
+      ASPNETCORE_ENVIRONMENT: Development
     depends_on: [kafka, schema-registry, redis, kafka-setup]
     networks: [app-net]
 
   chunk.api:
-    # build:
-    #   context: ./src/Chunk/Chunk.Api
     image: ghcr.io/yourorg/chunk:dev
     container_name: chunk-api
     restart: unless-stopped
     environment:
-      - Kafka__BootstrapServers=kafka:9092
-      - SchemaRegistry__Url=http://schema-registry:8081
-      - Mongo__ConnectionString=mongodb://root:secret@mongodb:27017/?authSource=admin
-      - In__Topic=ingest.raw
-      - Out__Topic=ingest.normalized
+      Kafka__BootstrapServers: kafka:9092
+      Kafka__ClientId: chunk-api
+      SchemaRegistry__Url: http://schema-registry:8081
+      ConnectionStrings__Redis: redis:6379,password=redispass
+      Mongo__ConnectionString: mongodb://root:secret@mongodb:27017/?authSource=admin
+      Mongo__Database: ddm
+      ASPNETCORE_ENVIRONMENT: Development
     depends_on: [kafka, schema-registry, mongodb, kafka-setup]
     networks: [app-net]
 
-  query.api (odata):
-    # build:
-    #   context: ./src/Query/Query.Api
+  query.api:
     image: ghcr.io/yourorg/query:dev
     container_name: query-api
     restart: unless-stopped
-    ports: ["5001:8080"]   # OData endpoint (dev)
+    ports: ["5001:8080"]
     environment:
-      - Kafka__BootstrapServers=kafka:9092
-      - SchemaRegistry__Url=http://schema-registry:8081
-      - Redis__Connection=redis:6379,password=redispass
-      - ConnectionRegistry__Mongo=mongodb://root:secret@mongodb:27017/?authSource=admin
-      - Out__Topic=query.results
+      Kafka__BootstrapServers: kafka:9092
+      Kafka__ClientId: query-api
+      SchemaRegistry__Url: http://schema-registry:8081
+      ConnectionStrings__Redis: redis:6379,password=redispass
+      ConnectionRegistry__Mongo: mongodb://root:secret@mongodb:27017/?authSource=admin
+      ASPNETCORE_ENVIRONMENT: Development
     depends_on: [kafka, schema-registry, redis, mongodb, kafka-setup]
     networks: [app-net]
 
   sink.api:
-    # build:
-    #   context: ./src/Sink/Sink.Api
     image: ghcr.io/yourorg/sink:dev
     container_name: sink-api
     restart: unless-stopped
     environment:
-      - Kafka__BootstrapServers=kafka:9092
-      - SchemaRegistry__Url=http://schema-registry:8081
-      - In__Topics=ingest.normalized,query.results
-      - ConnectionStrings__Sql=Server=mssql,1433;Database=SinkDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-      - Outbox__Enabled=true
+      Kafka__BootstrapServers: kafka:9092
+      Kafka__ClientId: sink-api
+      SchemaRegistry__Url: http://schema-registry:8081
+      In__Topics: ingest.normalized,query.results
+      ConnectionStrings__Sql: Server=mssql,1433;Database=SinkDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+      Outbox__Enabled: "true"
     depends_on: [kafka, schema-registry, mssql, kafka-setup]
     networks: [app-net]
