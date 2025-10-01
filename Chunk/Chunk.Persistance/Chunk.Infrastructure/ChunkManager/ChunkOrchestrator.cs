@@ -136,8 +136,8 @@ namespace Chunk.Infrastructure.ChunkManager
 
         private async Task EnsureChunkSetAsync(IngestRawChunk chunk, CancellationToken ct)
         {
-            var filter = Builders<ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
-            var update = Builders<ChunkSet>.Update
+            var filter = Builders<Chunk.Domain.Entities.ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
+            var update = Builders<Chunk.Domain.Entities.ChunkSet>.Update
                 .SetOnInsert(x => x.Id, chunk.JobId)
                 .SetOnInsert(x => x.TenantId, chunk.TenantId)
                 .SetOnInsert(x => x.Total, chunk.Total)
@@ -172,12 +172,12 @@ namespace Chunk.Infrastructure.ChunkManager
                 return;
             }
 
-            var setFilter = Builders<ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
-            var setUpdate = Builders<ChunkSet>.Update
+            var setFilter = Builders<Chunk.Domain.Entities.ChunkSet>.Filter.Eq(x => x.Id, chunk.JobId);
+            var setUpdate = Builders<Chunk.Domain.Entities.ChunkSet>.Update
                 .Inc(x => x.Received, 1)
                 .Set(x => x.Status, ChunkSetStatus.InProgress);
 
-            var options = new FindOneAndUpdateOptions<ChunkSet>
+            var options = new FindOneAndUpdateOptions<Chunk.Domain.Entities.ChunkSet>
             {
                 ReturnDocument = ReturnDocument.After
             };
@@ -195,8 +195,8 @@ namespace Chunk.Infrastructure.ChunkManager
             {
                 await _mongo.ChunkSets.UpdateOneAsync(
                         setFilter,
-                        Builders<ChunkSet>.Update
-                            .Set(x => x.Status, ChunkSetStatus.Completed)
+                        Builders<Chunk.Domain.Entities.ChunkSet>.Update
+                            .Set("Status", ChunkSetStatus.Completed)
                             .Set(x => x.CompletedAt, DateTimeOffset.UtcNow),
                         cancellationToken: ct)
                     .ConfigureAwait(false);

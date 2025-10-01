@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Shared.Messaging.KafkaOptions
 {
-    internal sealed class KafkaProducer : IKafkaProducer
+    public class KafkaProducer : IKafkaProducer
     {
         private readonly IProducer<string, string> _producer;
         private readonly ILogger<KafkaProducer> _logger;
