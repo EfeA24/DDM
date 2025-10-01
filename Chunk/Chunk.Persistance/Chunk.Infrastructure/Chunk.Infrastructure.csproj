@@ -11,9 +11,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.9" />
     <PackageReference Include="MongoDB.Bson" Version="3.5.0" />
     <PackageReference Include="MongoDB.Driver" Version="3.5.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Shared.Messaging\Shared.Messaging.csproj" />
     <ProjectReference Include="..\..\Chunk.Core\Chunk.Application\Chunk.Application.csproj" />
     <ProjectReference Include="..\..\Chunk.Core\Chunk.Domain\Chunk.Domain.csproj" />
   </ItemGroup>

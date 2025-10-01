@@ -3,11 +3,20 @@ using Chunk.Infrastructure.Mongo;
 using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using Chunk.Application.Interfaces;
+using Chunk.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Shared.Messaging;
+using Shared.Messaging.KafkaOptions;
+using StackExchange.Redis;
+using Shared.Messaging.KafkaOptions;
+using Shared.Messaging.MessagingOptions;
 
 namespace Chunk.Infrastructure.ChunkManager
 {
