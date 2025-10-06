@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Share.Kernel\Share.Kernel.csproj" />
+    <ProjectReference Include="..\Sink.Domain\Sink.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -20,6 +20,8 @@ namespace Share.Kernel.Results
         public static Result Success() => new(true, null);
         public static Result Failure(string code, string message) =>
             new(false, new Error(code, message));
+        public static Result Failure(Error error) =>
+    new(false, error ?? throw new ArgumentNullException(nameof(error)));
     }
 
     public class Result<T> : Result
@@ -35,5 +37,7 @@ namespace Share.Kernel.Results
         public static Result<T> Success(T value) => new(true, value, null);
         public static new Result<T> Failure(string code, string message) =>
             new(false, default, new Error(code, message));
+        public static Result<T> Failure(Error error) =>
+    new(false, default, error ?? throw new ArgumentNullException(nameof(error)));
     }
 }
